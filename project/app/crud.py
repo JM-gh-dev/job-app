@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 
-def create_item(db: Session, item: schemas.ItemCreate):
-    db_item = models.Item(name=item.name)
-    db.add(db_item)
+def create_application(db: Session, app: schemas.ApplicationCreate):
+    db_app = models.Application(**app.dict())
+    db.add(db_app)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(db_app)
+    return db_app
 
-def get_items(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Item).offset(skip).limit(limit).all()
+def get_applications(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Application).offset(skip).limit(limit).all()
