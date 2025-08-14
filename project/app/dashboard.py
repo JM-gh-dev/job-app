@@ -1,36 +1,49 @@
+# app/dashboard.py
 import dash
-from dash import dcc, html
+from dash import dcc, html, Output, Input
 import plotly.express as px
 import pandas as pd
 from sqlalchemy.orm import Session
 from .database import SessionLocal
 from . import models
 
-# Tworzymy Dash app
+# Dash będzie dostępny pod /dash/
 dash_app = dash.Dash(__name__, requests_pathname_prefix="/dash/")
 
-# Funkcja pobierająca dane z bazy
-def load_data():
+def load_df():
+    """Pobierz daty złożenia aplikacji z bazy i policz ile było danego dnia."""
     db: Session = SessionLocal()
-    items = db.query(models.Item).all()
-    db.close()
-    return pd.DataFrame([{"id": item.id, "name": item.name} for item in items])
+    try:
+        rows = db.query(models.Application.data_zlozenia).all()  # [(date,), (date,), ...]
+    finally:
+        db.close()
 
-# Layout – to, co widzimy w przeglądarce
-dash_app.layout = html.Div([
-    html.H1("Wykres przedmiotów"),
-    dcc.Graph(id="items-graph")
-])
-
-# Callback – co się dzieje przy załadowaniu strony
-@dash_app.callback(
-    dash.Output("items-graph", "figure"),
-    dash.Input("items-graph", "id")
-)
-def update_graph(_):
-    df = load_data()
+    df = pd.DataFrame(rows, columns=["data_zlozenia"]).dropna()
     if df.empty:
-        fig = px.scatter(title="Brak danych w bazie")
-    else:
-        fig = px.bar(df, x="id", y="name", title="Lista przedmiotów")
+        return df
+
+    # upewniamy się, że to kolumna typu datetime i sortujemy
+    df["data_zlozenia"] = pd.to_datetime(df["data_zlozenia"])
+    grouped = df.value_counts("data_zlozenia").sort_index().rename("liczba").reset_index()
+    return grouped  # kolumny: data_zlozenia, liczba
+
+dash_app.layout = html.Div(
+    [
+        html.H2("Liczba aplikacji w czasie"),
+        dcc.Graph(id="applications-time"),
+        dcc.Interval(id="tick", interval=5_000, n_intervals=0),  # auto-refresh co 5s
+    ],
+    style={"maxWidth": "900px", "margin": "0 auto", "padding": "16px"},
+)
+
+@dash_app.callback(Output("applications-time", "figure"), Input("tick", "n_intervals"))
+def update_chart(_):
+    df = load_df()
+    if df.empty:
+        return px.line(title="Brak danych (dodaj rekord w /docs → POST /applications/)")
+
+    fig = px.line(
+        df, x="data_zlozenia", y="liczba", markers=True, title="Liczba aplikacji dziennie"
+    )
+    fig.update_layout(xaxis_title="Data", yaxis_title="Liczba aplikacji")
     return fig
