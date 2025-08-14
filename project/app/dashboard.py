@@ -42,6 +42,29 @@ def load_contract_df():
     grouped = df.value_counts("rodzaj_umowy").rename("liczba").reset_index()
     return grouped  # kolumny: rodzaj_umowy, liczba
 
+def load_salary_df():
+    """Liczy średnią wartość widełek (średnia z min i max) w podziale na rodzaj umowy."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.query(
+            models.Application.rodzaj_umowy,
+            models.Application.widełki_min,
+            models.Application.widełki_max
+        ).all()
+    finally:
+        db.close()
+
+    df = pd.DataFrame(rows, columns=["rodzaj_umowy", "min", "max"]).dropna()
+    if df.empty:
+        return df
+
+    # Średnia dla każdego rekordu
+    df["średnia"] = (df["min"] + df["max"]) / 2
+
+    # Grupujemy po rodzaju umowy i liczymy średnią z tych średnich
+    grouped = df.groupby("rodzaj_umowy", as_index=False)["średnia"].mean()
+    return grouped
+
 dash_app.layout = html.Div(
     [
         html.H2("Liczba aplikacji w czasie"),
@@ -49,6 +72,9 @@ dash_app.layout = html.Div(
 
         html.H2("Udział rodzajów umów"),
         dcc.Graph(id="contracts-pie"),
+
+        html.H2("Średnie widełki płacowe wg rodzaju umowy"),
+        dcc.Graph(id="salary-bar"),
 
         dcc.Interval(id="tick", interval=5_000, n_intervals=0),  # auto-refresh co 5s
     ],
@@ -84,3 +110,25 @@ def update_pie(_):
     fig = px.pie(df, names="rodzaj_umowy", values="liczba", title="Udział rodzajów umów")
     fig.update_traces(textinfo="percent+label")
     return fig
+
+# ---- Callback dla trzeciego wykresu ----
+@dash_app.callback(
+    Output("salary-bar", "figure"),
+    Input("tick", "n_intervals")
+)
+def update_salary_chart(_):
+    df = load_salary_df()
+    if df.empty:
+        return px.bar(title="Brak danych (uzupełnij widełki w rekordach)")
+
+    fig = px.bar(
+        df,
+        x="rodzaj_umowy",
+        y="średnia",
+        title="Średnie widełki płacowe wg rodzaju umowy",
+        text_auto=".2f"
+    )
+    fig.update_layout(xaxis_title="Rodzaj umowy", yaxis_title="Średnia płaca")
+    return fig
+
+
