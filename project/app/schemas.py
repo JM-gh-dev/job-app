@@ -6,6 +6,7 @@ class ApplicationBase(BaseModel):
     firma: str
     stanowisko: str
     link: Optional[str] = None
+    link2: Optional[str] = None
     widełki_min: Optional[float] = None
     widełki_max: Optional[float] = None
     rodzaj_umowy: Optional[str] = None
