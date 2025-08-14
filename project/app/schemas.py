@@ -1,10 +1,23 @@
 from pydantic import BaseModel
+from datetime import date
+from typing import Optional
 
-class ItemCreate(BaseModel):
-    name: str
-    
-class Item(BaseModel):
+class ApplicationBase(BaseModel):
+    firma: str
+    stanowisko: str
+    link: Optional[str] = None
+    widełki_min: Optional[float] = None
+    widełki_max: Optional[float] = None
+    rodzaj_umowy: Optional[str] = None
+    data_zlozenia: Optional[date] = None
+    odpowiedz: Optional[str] = None
+    desc: Optional[srt] = None
+
+class ApplicationCreate(ApplicationBase):
+    pass
+
+class Application(ApplicationBase):
     id: int
-    name: str
+
     class Config:
         orm_mode = True
