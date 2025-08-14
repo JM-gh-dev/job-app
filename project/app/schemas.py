@@ -11,7 +11,7 @@ class ApplicationBase(BaseModel):
     rodzaj_umowy: Optional[str] = None
     data_zlozenia: Optional[date] = None
     odpowiedz: Optional[str] = None
-    desc: Optional[str] = None
+    description: Optional[str] = None
 
 class ApplicationCreate(ApplicationBase):
     pass

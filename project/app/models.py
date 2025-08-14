@@ -13,4 +13,4 @@ class Application(Base):
     rodzaj_umowy = Column(String)
     data_zlozenia = Column(Date)
     odpowiedz = Column(String)
-    desc = Column(String)
+    description = Column(String)
