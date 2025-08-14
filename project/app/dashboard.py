@@ -34,7 +34,19 @@ def load_table_df():
         }
         for r in rows
     ]
-    return pd.DataFrame(data)
+
+    df = pd.DataFrame(data)
+
+    # Zamiana na klikalne linki z target="_blank"
+    for col in ["link", "link2"]:
+        if col in df.columns:
+            df[col] = df[col].apply(
+                lambda url: f'<a href="{url}" target="_blank">otwórz</a>'
+                if pd.notna(url) and str(url).strip() != ""
+                else ""
+            )
+
+    return df
 
 
 def load_df():
@@ -107,8 +119,8 @@ dash_app.layout = html.Div(
             columns=[
                 {"name": "Nazwa firmy", "id": "nazwa_firmy"},
                 {"name": "Stanowisko", "id": "stanowisko"},
-                {"name": "Link", "id": "link"},
-                {"name": "Link 2", "id": "link2"},
+                {"name": "Link", "id": "link", "presentation": "markdown"},
+                {"name": "Link 2", "id": "link2", "presentation": "markdown"},
                 {"name": "Widełki min", "id": "widełki_min"},
                 {"name": "Widełki max", "id": "widełki_max"},
                 {"name": "Rodzaj umowy", "id": "rodzaj_umowy"},
@@ -136,6 +148,9 @@ dash_app.layout = html.Div(
             style_header={
                 "backgroundColor": "lightgrey",
                 "fontWeight": "bold"
+            },
+            markdown_options={
+                "html": True
             }
         ),
 
