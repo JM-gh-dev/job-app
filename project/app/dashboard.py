@@ -1,6 +1,6 @@
 # app/dashboard.py
 import dash
-from dash import dcc, html, Output, Input
+from dash import dcc, html, Output, Input, dash_table
 import plotly.express as px
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -9,6 +9,33 @@ from . import models
 
 # Dash będzie dostępny pod /dash/
 dash_app = dash.Dash(__name__, requests_pathname_prefix="/dash/")
+
+def load_table_df():
+    """Ładuje wszystkie aplikacje z bazy jako DataFrame."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.query(models.Application).all()
+    finally:
+        db.close()
+
+    # Konwertujemy obiekty SQLAlchemy na słowniki
+    data = [
+        {
+            "nazwa_firmy": r.firma,
+            "stanowisko": r.stanowisko,
+            "link": r.link,
+            "link2": r.link2,
+            "widełki_min": r.widełki_min,
+            "widełki_max": r.widełki_max,
+            "rodzaj_umowy": r.rodzaj_umowy,
+            "data_zlozenia": r.data_zlozenia,
+            "odpowiedz": r.odpowiedz,
+            "description": r.description
+        }
+        for r in rows
+    ]
+    return pd.DataFrame(data)
+
 
 def load_df():
     """Pobierz daty złożenia aplikacji z bazy i policz ile było danego dnia."""
@@ -65,9 +92,55 @@ def load_salary_df():
     grouped = df.groupby("rodzaj_umowy", as_index=False)["średnia"].mean()
     return grouped
 
+
+df = load_table_df()
+apps_count = df.shape[0]  # liczba rekordów
+
 dash_app.layout = html.Div(
     [
         html.H1("Panel rekrutacyjny", style={"textAlign": "center"}),
+
+        # ---- TABELA ----
+        html.H3(f"Lista aplikacji ({apps_count})"),
+        dash_table.DataTable(
+            id="applications-table",
+            columns=[
+                {"name": "Nazwa firmy", "id": "nazwa_firmy"},
+                {"name": "Stanowisko", "id": "stanowisko"},
+                {"name": "Link", "id": "link"},
+                {"name": "Link 2", "id": "link2"},
+                {"name": "Widełki min", "id": "widełki_min"},
+                {"name": "Widełki max", "id": "widełki_max"},
+                {"name": "Rodzaj umowy", "id": "rodzaj_umowy"},
+                {"name": "Data złożenia", "id": "data_zlozenia"},
+                {"name": "Odpowiedź", "id": "odpowiedz"},
+                {"name": "Opis", "id": "description"},
+            ],
+            data=[],
+            page_size=5,
+            style_table={
+                #"overflowX": "auto",
+                "width": "100%",
+                #"minWidth": "100%",
+                "margin": "0",
+            },
+            style_cell={
+                "textAlign": "left",
+                "padding": "5px",
+                "whiteSpace": "normal",
+                "height": "auto",
+                "minWidth": "100px",
+                "width": "auto",
+                "maxWidth": "none"
+            },
+            style_header={
+                "backgroundColor": "lightgrey",
+                "fontWeight": "bold"
+            }
+        ),
+
+        html.Hr(style={"maxWidth": "100%", "margin": "0","justifyContent": "center"}
+),
 
         # FILTRY
         html.Div([
@@ -112,9 +185,17 @@ dash_app.layout = html.Div(
 
         dcc.Interval(id="tick", interval=5_000, n_intervals=0),
     ],
-    style={"maxWidth": "1200px", "margin": "0 auto", "padding": "16px"},
+    style={"maxWidth": "100%", "maxWidth": "100%", "margin": "0", "padding": "0"},
 )
 
+# ---- Callback dla tabeli ----
+@dash_app.callback(
+    Output("applications-table", "data"),
+    Input("tick", "n_intervals")
+)
+def update_table(_):
+    df = load_table_df()
+    return df.to_dict("records")
 
 # ---- Callback dla pierwszego wykresu ----
 @dash_app.callback(
@@ -165,5 +246,7 @@ def update_salary_chart(_):
     )
     fig.update_layout(xaxis_title="Rodzaj umowy", yaxis_title="Średnia płaca")
     return fig
+
+
 
 
