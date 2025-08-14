@@ -67,19 +67,54 @@ def load_salary_df():
 
 dash_app.layout = html.Div(
     [
-        html.H2("Liczba aplikacji w czasie"),
-        dcc.Graph(id="applications-time"),
+        html.H1("Panel rekrutacyjny", style={"textAlign": "center"}),
 
-        html.H2("Udział rodzajów umów"),
-        dcc.Graph(id="contracts-pie"),
+        # FILTRY
+        html.Div([
+            html.Div([
+                html.Label("Zakres dat:"),
+                dcc.DatePickerRange(
+                    id="date-range",
+                    display_format="YYYY-MM-DD"
+                ),
+            ], style={"marginRight": "40px"}),
 
-        html.H2("Średnie widełki płacowe wg rodzaju umowy"),
-        dcc.Graph(id="salary-bar"),
+            html.Div([
+                html.Label("Rodzaj umowy:"),
+                dcc.Dropdown(
+                    id="contract-filter",
+                    multi=True,
+                    placeholder="Wybierz rodzaj umowy"
+                ),
+            ], style={"flex": 1}),
+        ], style={"display": "flex", "marginBottom": "40px"}),
 
-        dcc.Interval(id="tick", interval=5_000, n_intervals=0),  # auto-refresh co 5s
+        # RZĄD 1 — wykres czasu i wykres kołowy
+        html.Div([
+            html.Div([
+                html.H3("Aplikacje w czasie"),
+                dcc.Graph(id="applications-time", style={"height": "400px"})
+            ], style={"flex": 1, "marginRight": "20px"}),
+
+            html.Div([
+                html.H3("Rodzaje umów"),
+                dcc.Graph(id="contracts-pie", style={"height": "400px"})
+            ], style={"flex": 1}),
+        ], style={"display": "flex", "marginBottom": "40px"}),
+
+        # RZĄD 2 — wykres płac
+        html.Div([
+            html.Div([
+                html.H3("Średnie widełki płacowe"),
+                dcc.Graph(id="salary-bar", style={"height": "400px"})
+            ], style={"flex": 1}),
+        ], style={"display": "flex"}),
+
+        dcc.Interval(id="tick", interval=5_000, n_intervals=0),
     ],
-    style={"maxWidth": "900px", "margin": "0 auto", "padding": "16px"},
+    style={"maxWidth": "1200px", "margin": "0 auto", "padding": "16px"},
 )
+
 
 # ---- Callback dla pierwszego wykresu ----
 @dash_app.callback(
